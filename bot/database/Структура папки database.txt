@@ -1,0 +1,214 @@
+Файл database/db.py:
+Здесь находятся функции для работы с базой данных, включая инициализацию таблиц и выполнение запросов.
+
+python
+Copy
+import sqlite3
+from datetime import datetime
+from .models import Employee, Brigade, Tool, MaterialRequest, Report, Shift
+
+# Инициализация базы данных
+def init_db():
+    conn = sqlite3.connect('reports.db')
+    cursor = conn.cursor()
+
+    # Создание таблицы сотрудников
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS employees (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT UNIQUE,
+            position TEXT,
+            brigade_id INTEGER,
+            FOREIGN KEY (brigade_id) REFERENCES brigades(id)
+        )
+    ''')
+
+    # Создание таблицы бригад
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS brigades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            member_count INTEGER DEFAULT 0
+        )
+    ''')
+
+    # Создание таблицы инструментов
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS tools (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            quantity INTEGER DEFAULT 0,
+            in_repair INTEGER DEFAULT 0,
+            photo_path TEXT
+        )
+    ''')
+
+    # Создание таблицы заявок на материалы
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS material_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            brigade_id INTEGER,
+            material_name TEXT NOT NULL,
+            request_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            photo_path TEXT,
+            FOREIGN KEY (brigade_id) REFERENCES brigades(id)
+        )
+    ''')
+
+    # Создание таблицы отчетов
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reports (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            report_text TEXT NOT NULL,
+            report_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            photo_path TEXT,
+            FOREIGN KEY (user_id) REFERENCES employees(user_id)
+        )
+    ''')
+
+    # Создание таблицы смен
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS shifts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            shift_start DATETIME,
+            shift_end DATETIME,
+            FOREIGN KEY (user_id) REFERENCES employees(user_id)
+        )
+    ''')
+
+    conn.commit()
+    conn.close()
+
+# Получение соединения с базой данных
+def get_db_connection():
+    return sqlite3.connect('reports.db')
+
+# Добавление сотрудника
+def add_employee(employee: Employee):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT OR IGNORE INTO employees (user_id, username, position, brigade_id)
+        VALUES (?, ?, ?, ?)
+    ''', (employee.user_id, employee.username, employee.position, employee.brigade_id))
+    conn.commit()
+    conn.close()
+
+# Добавление бригады
+def add_brigade(brigade: Brigade):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO brigades (name, member_count)
+        VALUES (?, ?)
+    ''', (brigade.name, brigade.member_count))
+    conn.commit()
+    conn.close()
+
+# Добавление инструмента
+def add_tool(tool: Tool):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO tools (name, quantity, in_repair, photo_path)
+        VALUES (?, ?, ?, ?)
+    ''', (tool.name, tool.quantity, tool.in_repair, tool.photo_path))
+    conn.commit()
+    conn.close()
+
+# Добавление заявки на материал
+def add_material_request(request: MaterialRequest):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO material_requests (brigade_id, material_name, request_date, photo_path)
+        VALUES (?, ?, ?, ?)
+    ''', (request.brigade_id, request.material_name, request.request_date, request.photo_path))
+    conn.commit()
+    conn.close()
+
+# Добавление отчета
+def add_report(report: Report):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO reports (user_id, report_text, report_date, photo_path)
+        VALUES (?, ?, ?, ?)
+    ''', (report.user_id, report.report_text, report.report_date, report.photo_path))
+    conn.commit()
+    conn.close()
+
+# Добавление смены
+def add_shift(shift: Shift):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO shifts (user_id, shift_start, shift_end)
+        VALUES (?, ?, ?)
+    ''', (shift.user_id, shift.shift_start, shift.shift_end))
+    conn.commit()
+    conn.close()
+
+# Получение списка всех бригад
+def get_all_brigades():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, name, member_count FROM brigades')
+    brigades = cursor.fetchall()
+    conn.close()
+    return brigades
+
+# Получение списка всех инструментов
+def get_all_tools():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, name, quantity, in_repair, photo_path FROM tools')
+    tools = cursor.fetchall()
+    conn.close()
+    return tools
+
+# Получение списка всех отчетов
+def get_all_reports():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, user_id, report_text, report_date, photo_path FROM reports')
+    reports = cursor.fetchall()
+    conn.close()
+    return reports
+
+# Получение списка всех смен
+def get_all_shifts():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, user_id, shift_start, shift_end FROM shifts')
+    shifts = cursor.fetchall()
+    conn.close()
+    return shifts
+Пример использования:
+Инициализация базы данных:
+python
+Copy
+from database.db import init_db
+
+# Инициализация базы данных при запуске приложения
+init_db()
+Добавление сотрудника:
+python
+Copy
+from database.models import Employee
+from database.db import add_employee
+
+employee = Employee(user_id=123, username="john_doe", position="Рабочий")
+add_employee(employee)
+Получение списка бригад:
+python
+Copy
+from database.db import get_all_brigades
+
+brigades = get_all_brigades()
+for brigade in brigades:
+    print(brigade)
+Итог:
+Теперь база данных организована в виде модульной структуры, что делает код более читаемым и поддерживаемым. Вы можете легко расширять функциональность, добавляя новые методы в db.py и модели в models.py.
